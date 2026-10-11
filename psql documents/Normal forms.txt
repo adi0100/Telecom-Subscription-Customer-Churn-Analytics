@@ -1,0 +1,7 @@
+"Our schema is strictly normalized to Third Normal Form (3NF):
+
+It satisfies 1NF because all table attributes are atomic and single-valued, with no multi-valued attributes or repeating groups.
+
+It satisfies 2NF because all tables utilize single-column Primary Keys (customer_id, service_id, etc.), completely eliminating the possibility of partial functional dependencies.
+
+It satisfies 3NF because by vertically decomposing the 21-column flat table into separate demographic, service, billing, and churn entities, we removed all transitive dependencies. Every non-prime attribute is directly and functionally dependent exclusively on its candidate key."
