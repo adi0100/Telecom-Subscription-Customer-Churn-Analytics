@@ -95,6 +95,9 @@
         <p class="text-secondary mb-0">Monitor customer risk and turn early signals into retention action.</p>
       </div>
       <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'agent_activity' %}" class="btn btn-outline-primary px-4 py-2">
+          <i class="bi bi-clock-history me-2"></i>My activity
+        </a>
         {% if request.user.is_superuser %}
           <a href="{% url 'agent_list' %}" class="btn btn-outline-primary px-4 py-2">
             <i class="bi bi-person-gear me-2"></i>Manage agents
@@ -113,7 +116,7 @@
           <div class="card-body d-flex justify-content-between">
             <div>
               <div class="metric-label mb-2">TOTAL CUSTOMERS</div>
-              <div class="metric-value">7,043</div>
+              <div class="metric-value">{{ customer_count_display }}</div>
               <div class="note mt-2 text-success">
                 <i class="bi bi-database-check me-1"></i>Dataset overview
               </div>
@@ -129,7 +132,7 @@
           <div class="card-body d-flex justify-content-between">
             <div>
               <div class="metric-label mb-2">CUSTOMERS CHURNED</div>
-              <div class="metric-value">1,869</div>
+              <div class="metric-value">{{ churned_count_display }}</div>
               <div class="note mt-2" style="color: var(--red)">
                 <i class="bi bi-exclamation-circle me-1"></i>Needs attention
               </div>
@@ -145,7 +148,7 @@
           <div class="card-body d-flex justify-content-between">
             <div>
               <div class="metric-label mb-2">CHURN RATE</div>
-              <div class="metric-value">26.5%</div>
+              <div class="metric-value">{% if churn_rate is not None %}{{ churn_rate|floatformat:1 }}%{% else %}—{% endif %}</div>
               <div class="note mt-2" style="color: var(--amber)">
                 <i class="bi bi-arrow-up-right me-1"></i>Portfolio baseline
               </div>
@@ -161,9 +164,9 @@
           <div class="card-body d-flex justify-content-between">
             <div>
               <div class="metric-label mb-2">HIGH-RISK SEGMENT</div>
-              <div class="metric-value">42.7%</div>
+              <div class="metric-value">{% if high_risk_contract %}{{ high_risk_contract.churn_rate|floatformat:1 }}%{% else %}—{% endif %}</div>
               <div class="note mt-2" style="color: var(--red)">
-                <i class="bi bi-lightning-charge me-1"></i>Month-to-month plans
+                <i class="bi bi-lightning-charge me-1"></i>{% if high_risk_contract %}{{ high_risk_contract.label }}{% else %}No contract data{% endif %}
               </div>
             </div>
             <span class="metric-icon" style="background: #f1eaff; color: #7655c7">
@@ -206,10 +209,10 @@
             </div>
             <div class="d-flex justify-content-center gap-4 small">
               <span>
-                <i class="dot me-1" style="background: var(--blue)"></i>Retained 5,174
+                <i class="dot me-1" style="background: var(--blue)"></i>Retained {{ retained_count_display }}
               </span>
               <span>
-                <i class="dot me-1" style="background: var(--red)"></i>Churned 1,869
+                <i class="dot me-1" style="background: var(--red)"></i>Churned {{ churned_count_display }}
               </span>
             </div>
           </div>
@@ -217,80 +220,62 @@
       </div>
     </div>
 
-    <!-- Static example list until customer data is connected to the template. -->
     <div class="row g-4 mt-1" id="risk">
       <div class="col-xl-8">
         <div class="card risk-card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <div>
               <h2 class="title">Customers requiring attention</h2>
-              <p class="sub">Illustrative priority list for retention outreach</p>
+              <p class="sub">Customers with the highest saved churn predictions</p>
             </div>
             <a href="{% url 'customer_list' %}" class="btn btn-outline-primary btn-sm">
               View all <i class="bi bi-arrow-right ms-1"></i>
             </a>
           </div>
           <div class="card-body pt-2 px-4">
-            <div class="risk-row d-flex align-items-center gap-3">
-              <span class="avatar">VH</span>
-              <div class="me-auto">
-                <div class="customer">Customer 7590-VHVEG</div>
-                <div class="detail">Month-to-month · DSL · 1 month tenure</div>
+            {% for prediction in risk_customers %}
+              <div class="risk-row d-flex align-items-center gap-3">
+                <span class="avatar">{{ prediction.customer.customer_id|slice:":2"|upper }}</span>
+                <div class="me-auto">
+                  <div class="customer">
+                    {{ prediction.customer.name|default:"Customer" }} · {{ prediction.customer.customer_id }}
+                  </div>
+                  <div class="detail">
+                    {{ prediction.customer.billingaccounts.contract|default:"Contract unavailable" }}
+                    · {{ prediction.customer.services.internet_service|default:"Service unavailable" }}
+                    · {{ prediction.customer.billingaccounts.tenure|default_if_none:"—" }} months tenure
+                  </div>
+                </div>
+                <span class="pill {% if prediction.risk_level == 'High' %}high{% else %}review{% endif %}">
+                  {{ prediction.risk_level }} · {{ prediction.churn_probability|floatformat:0 }}%
+                </span>
               </div>
-              <span class="pill high">High risk</span>
-              <button class="btn btn-sm btn-light text-primary">
-                <i class="bi bi-box-arrow-up-right"></i>
-              </button>
-            </div>
-            <div class="risk-row d-flex align-items-center gap-3">
-              <span class="avatar">QP</span>
-              <div class="me-auto">
-                <div class="customer">Customer 3668-QPYBK</div>
-                <div class="detail">Month-to-month · DSL · 2 months tenure</div>
-              </div>
-              <span class="pill high">High risk</span>
-              <button class="btn btn-sm btn-light text-primary">
-                <i class="bi bi-box-arrow-up-right"></i>
-              </button>
-            </div>
-            <div class="risk-row d-flex align-items-center gap-3">
-              <span class="avatar">HQ</span>
-              <div class="me-auto">
-                <div class="customer">Customer 9237-HQITU</div>
-                <div class="detail">Month-to-month · Fibre optic · 2 months tenure</div>
-              </div>
-              <span class="pill high">High risk</span>
-              <button class="btn btn-sm btn-light text-primary">
-                <i class="bi bi-box-arrow-up-right"></i>
-              </button>
-            </div>
-            <div class="risk-row d-flex align-items-center gap-3">
-              <span class="avatar">PL</span>
-              <div class="me-auto">
-                <div class="customer">Priority retention cohort</div>
-                <div class="detail">Electronic check payment · Fibre optic service</div>
-              </div>
-              <span class="pill review">Review</span>
-              <button class="btn btn-sm btn-light text-primary">
-                <i class="bi bi-box-arrow-up-right"></i>
-              </button>
-            </div>
+            {% empty %}
+              <p class="text-secondary py-4 mb-0 text-center">
+                No churn predictions are available yet.
+              </p>
+            {% endfor %}
           </div>
         </div>
       </div>
       <div class="col-xl-4">
         <aside class="insight h-100 p-4 d-flex flex-column justify-content-center">
           <small class="fw-bold">KEY RETENTION INSIGHT</small>
-          <h2 class="h4 fw-bold mt-2">Month-to-month customers are the priority.</h2>
-          <p class="mb-3 text-white-50">
-            Their 42.7% churn rate is almost four times that of one-year contracts.
-          </p>
+          {% if high_risk_contract %}
+            <h2 class="h4 fw-bold mt-2">{{ high_risk_contract.label }} customers are the priority.</h2>
+            <p class="mb-3 text-white-50">
+              This segment has the highest observed churn rate at {{ high_risk_contract.churn_rate|floatformat:1 }}%.
+            </p>
+          {% else %}
+            <h2 class="h4 fw-bold mt-2">Churn insights will appear here.</h2>
+            <p class="mb-3 text-white-50">Add customer, billing, and churn data to identify retention priorities.</p>
+          {% endif %}
           <div class="d-flex align-items-center gap-3">
             <span class="rounded-circle bg-white bg-opacity-25 p-2">
               <i class="bi bi-lightbulb"></i>
             </span>
             <span class="small">
-              Target contract-upgrade offers and early-life onboarding support.
+              Use this segment to focus retention outreach and onboarding support.
             </span>
           </div>
         </aside>
@@ -298,6 +283,8 @@
     </div>
   </main>
 
+  {{ contract_chart_data|json_script:"contractChartData" }}
+  {{ status_chart_data|json_script:"statusChartData" }}
   <!-- Chart.js is loaded before the configuration below so the global Chart constructor exists. -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script>
@@ -305,15 +292,22 @@
     Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
     Chart.defaults.color = '#718096';
 
-    // Bar chart: each value is the churn percentage for a contract type.
+    const contractChartData = JSON.parse(
+      document.getElementById('contractChartData').textContent
+    );
+    const statusChartData = JSON.parse(
+      document.getElementById('statusChartData').textContent
+    );
+
+    // Bar chart: each value is the observed churn percentage for a contract type.
     new Chart(document.getElementById('contractChart'), {
       type: 'bar',
       data: {
-        labels: ['Month-to-month', 'One year', 'Two year'],
+        labels: contractChartData.map(item => item.label),
         datasets: [{
           label: 'Churn rate',
-          data: [42.7, 11.3, 2.8],
-          backgroundColor: ['#e85656', '#ed9b31', '#23a777'],
+          data: contractChartData.map(item => item.churn_rate),
+          backgroundColor: ['#e85656', '#ed9b31', '#23a777', '#7655c7'],
           borderRadius: 7,
           borderSkipped: false,
           barThickness: 42
@@ -329,7 +323,7 @@
           x: { grid: { display: false }, border: { display: false } },
           y: {
             beginAtZero: true,
-            max: 50,
+            max: 100,
             ticks: { callback: value => value + '%' },
             grid: { color: '#edf2f7' },
             border: { display: false }
@@ -344,7 +338,7 @@
       data: {
         labels: ['Retained', 'Churned'],
         datasets: [{
-          data: [5174, 1869],
+          data: statusChartData,
           backgroundColor: ['#1769e0', '#e85656'],
           hoverOffset: 4,
           borderWidth: 0

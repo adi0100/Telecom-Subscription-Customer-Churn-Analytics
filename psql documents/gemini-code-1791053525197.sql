@@ -10,6 +10,9 @@ CREATE TABLE system_users (
 -- 2. Create CUSTOMERS
 CREATE TABLE customers (
     customer_id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(150),
+    email VARCHAR(254),
+    is_archived BOOLEAN NOT NULL DEFAULT FALSE,
     gender VARCHAR(10),
     senior_citizen SMALLINT CHECK (senior_citizen IN (0, 1)),
     partner VARCHAR(3) CHECK (partner IN ('Yes', 'No')),

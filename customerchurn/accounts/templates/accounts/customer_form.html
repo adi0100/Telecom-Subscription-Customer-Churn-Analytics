@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HoldOn | {{ page_title }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-dark px-3 px-lg-5" style="background: #102a43">
+    <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">HoldOn</a>
+    <div class="d-flex align-items-center gap-3">
+      <span class="text-white-50">{{ request.user.username }}</span>
+      <a href="{% url 'agent_activity' %}" class="btn btn-sm btn-outline-light">My activity</a>
+      <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-light">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div>
+        <h1 class="h3 mb-1">{{ page_title }}</h1>
+        <p class="text-secondary mb-0">
+          {% if form.fields.name.required %}
+            Customer name is required for new customer records.
+          {% else %}
+            Update the customer's contact, contract, billing, and service details.
+          {% endif %}
+        </p>
+      </div>
+      <a href="{{ cancel_url }}" class="btn btn-outline-primary">Back to customers</a>
+    </div>
+
+    <form method="post" class="card border-0 shadow-sm">
+      {% csrf_token %}
+      <div class="card-body p-4">
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <h2 class="h5 mb-3">Customer details</h2>
+        <div class="row g-3 mb-4">
+          {% for field in form %}
+            {% if field.name == 'name' or field.name == 'email' or field.name == 'gender' or field.name == 'senior_citizen' or field.name == 'partner' or field.name == 'dependents' or field.name == 'churn_status' %}
+              <div class="col-md-6 col-lg-4">
+                <label class="form-label" for="{{ field.id_for_label }}">
+                  {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ field }}
+                {% for error in field.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        <h2 class="h5 mb-3">Contract and billing</h2>
+        <div class="row g-3 mb-4">
+          {% for field in form %}
+            {% if field.name == 'contract' or field.name == 'tenure' or field.name == 'monthly_charges' or field.name == 'total_charges' or field.name == 'paperless_billing' or field.name == 'payment_method' %}
+              <div class="col-md-6 col-lg-4">
+                <label class="form-label" for="{{ field.id_for_label }}">
+                  {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ field }}
+                {% for error in field.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        <h2 class="h5 mb-3">Subscribed services</h2>
+        <div class="row g-3">
+          {% for field in form %}
+            {% if field.name == 'phone_service' or field.name == 'multiple_lines' or field.name == 'internet_service' or field.name == 'online_security' or field.name == 'online_backup' or field.name == 'device_protection' or field.name == 'tech_support' or field.name == 'streaming_tv' or field.name == 'streaming_movies' %}
+              <div class="col-md-6 col-lg-4">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card-footer bg-white p-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+        <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

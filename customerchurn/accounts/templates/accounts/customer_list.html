@@ -12,6 +12,7 @@
     <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">HoldOn</a>
     <div class="d-flex align-items-center gap-3">
       <span class="text-white-50">{{ request.user.username|default:"Analyst" }}</span>
+      <a href="{% url 'agent_activity' %}" class="btn btn-sm btn-outline-light">My activity</a>
       <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-light">Logout</a>
     </div>
   </nav>
@@ -20,12 +21,25 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
       <div>
         <h1 class="h3 mb-1">All customers</h1>
-        <p class="text-secondary mb-0">{{ page_obj.paginator.count }} customers</p>
+        <p class="text-secondary mb-0">
+          {{ page_obj.paginator.count }} {% if customer_state == 'archived' %}archived{% else %}active{% endif %} customers
+        </p>
       </div>
       <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
         <i class="bi bi-arrow-left"></i> Back to dashboard
       </a>
+      <a href="{% url 'customer_create' %}" class="btn btn-primary">
+        <i class="bi bi-person-plus me-1"></i>Add customer
+      </a>
     </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}" role="status">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
 
     <div class="table-responsive bg-white rounded shadow-sm">
       <form method="get" class="row g-3 mb-3">
@@ -37,15 +51,22 @@
             value="{{ search_query }}"
           >
         </div>
-        <div class="col-md-4">
-          <label for="churn-status" class="form-label">Filter by churn status</label>
-          <select id="churn-status" name="churn_status" class="form-select">
-            <option value="" {% if not churn_status %}selected{% endif %}>All statuses</option>
-            <option value="Yes" {% if churn_status == "Yes" %}selected{% endif %}>Churned</option>
-            <option value="No" {% if churn_status == "No" %}selected{% endif %}>Retained</option>
+        <div class="col-md-3">
+          <label for="risk-level" class="form-label">Filter by risk</label>
+          <select id="risk-level" name="risk_level" class="form-select">
+            {% for value, label in risk_levels %}
+              <option value="{{ value }}" {% if risk_level == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
           </select>
         </div>
-        <div class="col-md-3 d-flex align-items-end gap-2">
+        <div class="col-md-2">
+          <label for="customer-state" class="form-label">Customer records</label>
+          <select id="customer-state" name="customer_state" class="form-select">
+            <option value="active" {% if customer_state == "active" %}selected{% endif %}>Active</option>
+            <option value="archived" {% if customer_state == "archived" %}selected{% endif %}>Archived</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end gap-2">
           <button class="btn btn-primary" type="submit">Search</button>
           <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary">Clear</a>
         </div>
@@ -54,16 +75,20 @@
         <thead class="table-light">
           <tr>
             <th scope="col">Customer ID</th>
+            <th scope="col">Name</th>
             <th scope="col">Gender</th>
             <th scope="col">Contract</th>
             <th scope="col">Monthly charges</th>
-            <th scope="col">Churn status</th>
+            <th scope="col">Risk level</th>
+            <th scope="col">Customer email</th>
+            <th scope="col">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for customer in page_obj %}
             <tr>
               <th scope="row">{{ customer.customer_id }}</th>
+              <td>{{ customer.name|default:"—" }}</td>
               <td>{{ customer.gender|default:"—" }}</td>
               <td>{{ customer.billingaccounts.contract|default:"—" }}</td>
               <td>
@@ -73,11 +98,71 @@
                   —
                 {% endif %}
               </td>
-              <td>{{ customer.churnrecords.churn_status|default:"—" }}</td>
+              <td>
+                {% with risk_level=customer.prediction.risk_level %}
+                  {% if risk_level == "High" %}
+                    <span class="badge text-bg-danger">High</span>
+                  {% elif risk_level == "Medium" %}
+                    <span class="badge text-bg-warning">Medium</span>
+                  {% elif risk_level == "Low" %}
+                    <span class="badge text-bg-success">Low</span>
+                  {% else %}
+                    <span class="badge text-bg-secondary">Not predicted</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td>
+                {% if customer.email %}
+                  <a href="mailto:{{ customer.email }}" class="d-inline-block mb-1 text-nowrap">
+                    <i class="bi bi-envelope me-1" aria-hidden="true"></i>{{ customer.email }}
+                  </a>
+                {% endif %}
+                <form method="post" action="{% url 'customer_email_update' customer.customer_id %}"
+                  class="d-flex align-items-center gap-2">
+                  {% csrf_token %}
+                  <input type="hidden" name="customer_id" value="{{ search_query }}">
+                  <input type="hidden" name="risk_level" value="{{ risk_level }}">
+                  <input type="hidden" name="customer_state" value="{{ customer_state }}">
+                  <input type="hidden" name="page" value="{{ page_obj.number }}">
+                  <label class="visually-hidden" for="email-{{ forloop.counter }}">
+                    Email for customer {{ customer.customer_id }}
+                  </label>
+                  <input id="email-{{ forloop.counter }}" name="email" type="email"
+                    class="form-control form-control-sm" value="{{ customer.email|default:'' }}"
+                    placeholder="Add email" maxlength="254">
+                  <button class="btn btn-sm btn-outline-primary text-nowrap" type="submit">Save</button>
+                </form>
+              </td>
+              <td class="text-nowrap">
+                <a href="{% url 'customer_edit' customer.customer_id %}"
+                  class="btn btn-sm btn-outline-primary mb-1">Edit</a>
+                {% if customer_state == 'archived' %}
+                  <form method="post" action="{% url 'customer_restore' customer.customer_id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="customer_id" value="{{ search_query }}">
+                    <input type="hidden" name="risk_level" value="{{ risk_level }}">
+                    <input type="hidden" name="customer_state" value="active">
+                    <input type="hidden" name="page" value="{{ page_obj.number }}">
+                    <button class="btn btn-sm btn-outline-primary" type="submit">Restore</button>
+                  </form>
+                {% elif customer.churnrecords.churn_status == 'Yes' %}
+                  <form method="post" action="{% url 'customer_archive' customer.customer_id %}"
+                    onsubmit="return confirm('Archive this churned customer? Their records will be preserved.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="customer_id" value="{{ search_query }}">
+                    <input type="hidden" name="risk_level" value="{{ risk_level }}">
+                    <input type="hidden" name="customer_state" value="active">
+                    <input type="hidden" name="page" value="{{ page_obj.number }}">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Archive</button>
+                  </form>
+                {% else %}
+                  <span class="text-secondary">—</span>
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5" class="text-center text-secondary py-4">
+              <td colspan="8" class="text-center text-secondary py-4">
                 No customers found.
               </td>
             </tr>
@@ -90,7 +175,7 @@
       <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Customer pages">
         {% if page_obj.has_previous %}
           <a class="btn btn-outline-secondary btn-sm"
-            href="?customer_id={{ search_query|urlencode }}&churn_status={{ churn_status|urlencode }}&page={{ page_obj.previous_page_number }}">
+            href="?customer_id={{ search_query|urlencode }}&risk_level={{ risk_level|urlencode }}&customer_state={{ customer_state|urlencode }}&page={{ page_obj.previous_page_number }}">
             Previous
           </a>
         {% else %}
@@ -101,7 +186,7 @@
         </span>
         {% if page_obj.has_next %}
           <a class="btn btn-outline-secondary btn-sm"
-            href="?customer_id={{ search_query|urlencode }}&churn_status={{ churn_status|urlencode }}&page={{ page_obj.next_page_number }}">
+            href="?customer_id={{ search_query|urlencode }}&risk_level={{ risk_level|urlencode }}&customer_state={{ customer_state|urlencode }}&page={{ page_obj.next_page_number }}">
             Next
           </a>
         {% else %}
