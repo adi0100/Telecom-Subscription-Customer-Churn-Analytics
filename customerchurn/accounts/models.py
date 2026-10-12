@@ -112,6 +112,7 @@ class ChurnPrediction(models.Model):
 class AgentActivity(models.Model):
     ACTION_CHOICES = [
         ('email_updated', 'Customer email updated'),
+        ('predictions_run', 'Churn predictions run'),
         ('customer_created', 'Customer record created'),
         ('customer_updated', 'Customer record updated'),
         ('customer_archived', 'Churned customer archived'),

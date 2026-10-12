@@ -8,6 +8,7 @@ urlpatterns = [
     path('agents/<int:user_id>/remove/', views.agent_remove_view, name='agent_remove'),
     path('agent-activity/', views.agent_activity_view, name='agent_activity'),
     path('customers/', views.customer_list_view, name='customer_list'),
+    path('customers/predict/', views.run_customer_predictions_view, name='run_customer_predictions'),
     path('customers/add/', views.customer_create_view, name='customer_create'),
     path('customers/<str:customer_id>/edit/', views.customer_edit_view, name='customer_edit'),
     path('customers/<str:customer_id>/email/', views.customer_email_update_view, name='customer_email_update'),

@@ -213,6 +213,36 @@ def customer_list_view(request):
 
 
 @login_required(login_url='login')
+@require_POST
+def run_customer_predictions_view(request):
+    from ml_engine.predict import run_predictions
+
+    try:
+        updated_count = run_predictions()
+    except FileNotFoundError as error:
+        messages.error(request, str(error))
+        return _customer_list_redirect(request)
+
+    if updated_count:
+        with transaction.atomic():
+            _record_agent_activity(
+                request.user,
+                'predictions_run',
+                f'Generated churn predictions for {updated_count} customers.',
+            )
+        messages.success(
+            request,
+            f'Churn risk predictions updated for {updated_count} customers.',
+        )
+    else:
+        messages.warning(
+            request,
+            'No active customers with complete service and billing data were eligible for prediction.',
+        )
+    return _customer_list_redirect(request)
+
+
+@login_required(login_url='login')
 def customer_create_view(request):
     if request.method == 'POST':
         form = CustomerRecordForm(request.POST)

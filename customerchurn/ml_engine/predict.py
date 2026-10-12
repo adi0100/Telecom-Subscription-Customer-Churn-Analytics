@@ -25,7 +25,7 @@ def fetch_active_customers():
         'services', 
         'billingaccounts', 
         'churnrecords'
-    ).all()
+    ).filter(is_archived=False)
 
     records = []
     for c in queryset:
@@ -74,7 +74,7 @@ def run_predictions():
     df = fetch_active_customers()
     if df.empty:
         print("No active customer records found.")
-        return
+        return 0
 
     # 3. Extract features (drop ID column)
     X = df.drop(columns=['customer_id'])
@@ -112,6 +112,7 @@ def run_predictions():
         updated_count += 1
 
     print(f"Successfully processed and updated predictions for {updated_count} customers!")
+    return updated_count
 
 
 if __name__ == '__main__':

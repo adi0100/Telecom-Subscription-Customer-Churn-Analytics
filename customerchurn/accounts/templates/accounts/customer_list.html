@@ -31,6 +31,18 @@
       <a href="{% url 'customer_create' %}" class="btn btn-primary">
         <i class="bi bi-person-plus me-1"></i>Add customer
       </a>
+      {% if customer_state == 'active' %}
+        <form method="post" action="{% url 'run_customer_predictions' %}">
+          {% csrf_token %}
+          <input type="hidden" name="customer_id" value="{{ search_query }}">
+          <input type="hidden" name="risk_level" value="{{ risk_level }}">
+          <input type="hidden" name="customer_state" value="{{ customer_state }}">
+          <input type="hidden" name="page" value="{{ page_obj.number }}">
+          <button type="submit" class="btn btn-outline-success">
+            <i class="bi bi-lightning-charge me-1"></i>Run predictions
+          </button>
+        </form>
+      {% endif %}
     </div>
 
     {% if messages %}

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 from django.test import TestCase, TransactionTestCase
 from django.db import connection
 from django.contrib.auth import get_user_model
@@ -238,6 +239,48 @@ class DashboardDataTests(TransactionTestCase):
         self.assertContains(response, 'A-001')
         self.assertNotContains(response, 'A-003')
         self.assertNotContains(response, 'Churn status')
+        self.assertContains(response, 'Run predictions')
+
+    @patch('ml_engine.predict.run_predictions', return_value=4)
+    def test_agent_can_run_predictions_and_activity_is_recorded(self, run_predictions):
+        response = self.client.post(
+            reverse('run_customer_predictions'),
+            {'risk_level': 'unpredicted', 'customer_state': 'active'},
+            follow=True,
+        )
+
+        run_predictions.assert_called_once_with()
+        self.assertEqual(
+            response.redirect_chain,
+            [(f'{reverse("customer_list")}?risk_level=unpredicted&customer_state=active', 302)],
+        )
+        self.assertTrue(
+            AgentActivity.objects.filter(
+                actor=self.admin,
+                action='predictions_run',
+                details='Generated churn predictions for 4 customers.',
+            ).exists()
+        )
+        self.assertContains(response, 'updated for 4 customers')
+
+    @patch('ml_engine.predict.run_predictions', return_value=0)
+    def test_prediction_action_reports_no_eligible_customers(self, run_predictions):
+        response = self.client.post(reverse('run_customer_predictions'), follow=True)
+
+        run_predictions.assert_called_once_with()
+        self.assertEqual(response.redirect_chain, [(reverse('customer_list'), 302)])
+        self.assertFalse(AgentActivity.objects.filter(action='predictions_run').exists())
+        self.assertContains(
+            response,
+            'No active customers with complete service and billing data were eligible',
+        )
+
+    @patch('ml_engine.predict.run_predictions')
+    def test_prediction_action_requires_post(self, run_predictions):
+        response = self.client.get(reverse('run_customer_predictions'))
+
+        self.assertEqual(response.status_code, 405)
+        run_predictions.assert_not_called()
 
     def test_agent_can_add_customer_with_name_billing_and_services(self):
         agent = User.objects.create_user(
