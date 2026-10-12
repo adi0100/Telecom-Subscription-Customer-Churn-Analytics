@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HoldOn | Customer Churn Analytics</title>
+  <!-- Bootstrap supplies the layout/components; Icons supplies the <i class="bi ..."> icons. -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    /* Reusable colour tokens keep the dashboard palette consistent. */
+    :root {
+      --navy: #102a43; --blue: #1769e0; --ink: #243b53;
+      --muted: #718096; --surface: #f5f8fc; --red: #e85656;
+      --amber: #ed9b31; --green: #23a777;
+    }
+    body {
+      background: var(--surface);
+      color: var(--ink);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    .topbar { background: var(--navy); min-height: 68px; }
+    .brand-mark, .metric-icon, .avatar { display: grid; place-items: center; }
+    .brand-mark { width: 35px; height: 35px; background: #2377ec; border-radius: 10px; color: #fff; }
+    .navlink { color: #b9c9dc; text-decoration: none; font-size: .9rem; }
+    .navlink:hover, .navlink.active { color: #fff; }
+    .kicker { color: var(--blue); font-size: .75rem; font-weight: 800; letter-spacing: .11em; }
+    .metric-card, .chart-card, .risk-card {
+      border: 0;
+      border-radius: 16px;
+      box-shadow: 0 3px 15px rgba(25, 56, 89, .06);
+    }
+    .metric-card { overflow: hidden; }
+    .metric-card .card-body { padding: 1.35rem; }
+    .metric-icon { width: 43px; height: 43px; border-radius: 12px; font-size: 1.2rem; }
+    .metric-value { font-size: 1.7rem; font-weight: 750; color: var(--navy); line-height: 1; }
+    .metric-label, .sub { color: var(--muted); font-size: .8rem; font-weight: 600; }
+    .note { font-size: .75rem; font-weight: 650; }
+    .chart-card .card-header, .risk-card .card-header { border: 0; background: #fff; padding: 1.25rem 1.35rem 0; }
+    .chart-card .card-body { padding: 1rem 1.35rem 1.25rem; }
+    .title { color: var(--navy); font-size: 1rem; font-weight: 750; margin: 0; }
+    .sub { font-weight: 400; margin: .2rem 0 0; }
+    .filter { border: 1px solid #d9e2ec; color: #526d82; background: #fff; font-size: .78rem; }
+    /* A fixed parent height lets Chart.js fill the card when maintainAspectRatio is false. */
+    .chart-wrap { height: 250px; position: relative; }
+    .risk-card { border-left: 4px solid var(--red); }
+    .risk-row { padding: .85rem 0; border-bottom: 1px solid #edf2f7; }
+    .risk-row:last-child { border: 0; }
+    .avatar {
+      width: 38px;
+      height: 38px;
+      background: #e4efff;
+      color: #1769e0;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: .78rem;
+    }
+    .customer { font-size: .86rem; font-weight: 750; color: var(--navy); }
+    .detail { color: var(--muted); font-size: .74rem; }
+    .pill { font-size: .7rem; font-weight: 750; border-radius: 20px; padding: .27rem .55rem; }
+    .high { color: #bd3434; background: #ffebeb; }
+    .review { color: #aa6d12; background: #fff3dc; }
+    .insight { background: linear-gradient(110deg, #13345b, #1c5b9f); color: #fff; border-radius: 16px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    @media (max-width: 767px) {
+      .top-nav { display: none !important; }
+      .chart-wrap { height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar topbar px-3 px-lg-5 shadow-sm">
+    <a class="navbar-brand d-flex align-items-center gap-2 text-white mb-0" href="#">
+      <span class="brand-mark"><i class="bi bi-activity"></i></span>
+      <span class="fw-bold fs-5">HoldOn</span>
+    </a>
+    <div class="top-nav d-flex align-items-center gap-4 ms-5 me-auto">
+      <a class="navlink active" href="#overview">Overview</a>
+      <a class="navlink" href="#risk">Risk customers</a>
+      <a class="navlink" href="#analytics">Analytics</a>
+    </div>
+    <div class="d-flex align-items-center gap-3 text-white">
+      <i class="bi bi-bell text-white-50"></i>
+      <!-- Django fallback filter shows “Analyst” if the username is unavailable. -->
+      <span class="d-none d-sm-inline small text-white-50">{{ request.user.username|default:"Analyst" }}</span>
+      <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-light px-3">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container-fluid px-3 px-lg-5 py-4 py-lg-5" id="overview">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+      <div>
+        <div class="kicker">CUSTOMER RETENTION INTELLIGENCE</div>
+        <h1 class="h3 fw-bold mt-2 mb-1" style="color: var(--navy)">Churn analytics dashboard</h1>
+        <p class="text-secondary mb-0">Monitor customer risk and turn early signals into retention action.</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        {% if request.user.is_superuser %}
+          <a href="{% url 'agent_list' %}" class="btn btn-outline-primary px-4 py-2">
+            <i class="bi bi-person-gear me-2"></i>Manage agents
+          </a>
+        {% endif %}
+        <a href="#risk" class="btn btn-primary px-4 py-2">
+          <i class="bi bi-people me-2"></i>View customer details
+        </a>
+      </div>
+    </div>
+
+    <!-- Summary metric cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-xl-3">
+        <div class="card metric-card h-100">
+          <div class="card-body d-flex justify-content-between">
+            <div>
+              <div class="metric-label mb-2">TOTAL CUSTOMERS</div>
+              <div class="metric-value">7,043</div>
+              <div class="note mt-2 text-success">
+                <i class="bi bi-database-check me-1"></i>Dataset overview
+              </div>
+            </div>
+            <span class="metric-icon" style="background: #e4efff; color: #1769e0">
+              <i class="bi bi-people"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card metric-card h-100">
+          <div class="card-body d-flex justify-content-between">
+            <div>
+              <div class="metric-label mb-2">CUSTOMERS CHURNED</div>
+              <div class="metric-value">1,869</div>
+              <div class="note mt-2" style="color: var(--red)">
+                <i class="bi bi-exclamation-circle me-1"></i>Needs attention
+              </div>
+            </div>
+            <span class="metric-icon" style="background: #ffebeb; color: var(--red)">
+              <i class="bi bi-person-x"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card metric-card h-100">
+          <div class="card-body d-flex justify-content-between">
+            <div>
+              <div class="metric-label mb-2">CHURN RATE</div>
+              <div class="metric-value">26.5%</div>
+              <div class="note mt-2" style="color: var(--amber)">
+                <i class="bi bi-arrow-up-right me-1"></i>Portfolio baseline
+              </div>
+            </div>
+            <span class="metric-icon" style="background: #fff3dc; color: var(--amber)">
+              <i class="bi bi-graph-up-arrow"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card metric-card h-100">
+          <div class="card-body d-flex justify-content-between">
+            <div>
+              <div class="metric-label mb-2">HIGH-RISK SEGMENT</div>
+              <div class="metric-value">42.7%</div>
+              <div class="note mt-2" style="color: var(--red)">
+                <i class="bi bi-lightning-charge me-1"></i>Month-to-month plans
+              </div>
+            </div>
+            <span class="metric-icon" style="background: #f1eaff; color: #7655c7">
+              <i class="bi bi-shield-exclamation"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart canvases are populated by the Chart.js code at the bottom of the page. -->
+    <div class="row g-4" id="analytics">
+      <div class="col-xl-8">
+        <div class="card chart-card h-100">
+          <div class="card-header d-flex justify-content-between align-items-start">
+            <div>
+              <h2 class="title">Churn by contract type</h2>
+              <p class="sub">Customers who churned within each contract group</p>
+            </div>
+            <button class="btn filter btn-sm">
+              <i class="bi bi-calendar3 me-1"></i>All data
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap">
+              <canvas id="contractChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-4">
+        <div class="card chart-card h-100">
+          <div class="card-header">
+            <h2 class="title">Customer status</h2>
+            <p class="sub">Overall customer distribution</p>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap">
+              <canvas id="statusChart"></canvas>
+            </div>
+            <div class="d-flex justify-content-center gap-4 small">
+              <span>
+                <i class="dot me-1" style="background: var(--blue)"></i>Retained 5,174
+              </span>
+              <span>
+                <i class="dot me-1" style="background: var(--red)"></i>Churned 1,869
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Static example list until customer data is connected to the template. -->
+    <div class="row g-4 mt-1" id="risk">
+      <div class="col-xl-8">
+        <div class="card risk-card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <h2 class="title">Customers requiring attention</h2>
+              <p class="sub">Illustrative priority list for retention outreach</p>
+            </div>
+            <a href="{% url 'customer_list' %}" class="btn btn-outline-primary btn-sm">
+              View all <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </div>
+          <div class="card-body pt-2 px-4">
+            <div class="risk-row d-flex align-items-center gap-3">
+              <span class="avatar">VH</span>
+              <div class="me-auto">
+                <div class="customer">Customer 7590-VHVEG</div>
+                <div class="detail">Month-to-month · DSL · 1 month tenure</div>
+              </div>
+              <span class="pill high">High risk</span>
+              <button class="btn btn-sm btn-light text-primary">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </button>
+            </div>
+            <div class="risk-row d-flex align-items-center gap-3">
+              <span class="avatar">QP</span>
+              <div class="me-auto">
+                <div class="customer">Customer 3668-QPYBK</div>
+                <div class="detail">Month-to-month · DSL · 2 months tenure</div>
+              </div>
+              <span class="pill high">High risk</span>
+              <button class="btn btn-sm btn-light text-primary">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </button>
+            </div>
+            <div class="risk-row d-flex align-items-center gap-3">
+              <span class="avatar">HQ</span>
+              <div class="me-auto">
+                <div class="customer">Customer 9237-HQITU</div>
+                <div class="detail">Month-to-month · Fibre optic · 2 months tenure</div>
+              </div>
+              <span class="pill high">High risk</span>
+              <button class="btn btn-sm btn-light text-primary">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </button>
+            </div>
+            <div class="risk-row d-flex align-items-center gap-3">
+              <span class="avatar">PL</span>
+              <div class="me-auto">
+                <div class="customer">Priority retention cohort</div>
+                <div class="detail">Electronic check payment · Fibre optic service</div>
+              </div>
+              <span class="pill review">Review</span>
+              <button class="btn btn-sm btn-light text-primary">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-4">
+        <aside class="insight h-100 p-4 d-flex flex-column justify-content-center">
+          <small class="fw-bold">KEY RETENTION INSIGHT</small>
+          <h2 class="h4 fw-bold mt-2">Month-to-month customers are the priority.</h2>
+          <p class="mb-3 text-white-50">
+            Their 42.7% churn rate is almost four times that of one-year contracts.
+          </p>
+          <div class="d-flex align-items-center gap-3">
+            <span class="rounded-circle bg-white bg-opacity-25 p-2">
+              <i class="bi bi-lightbulb"></i>
+            </span>
+            <span class="small">
+              Target contract-upgrade offers and early-life onboarding support.
+            </span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- Chart.js is loaded before the configuration below so the global Chart constructor exists. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script>
+    // Set defaults once, so both charts share typography and text colour.
+    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+    Chart.defaults.color = '#718096';
+
+    // Bar chart: each value is the churn percentage for a contract type.
+    new Chart(document.getElementById('contractChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Month-to-month', 'One year', 'Two year'],
+        datasets: [{
+          label: 'Churn rate',
+          data: [42.7, 11.3, 2.8],
+          backgroundColor: ['#e85656', '#ed9b31', '#23a777'],
+          borderRadius: 7,
+          borderSkipped: false,
+          barThickness: 42
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: context => context.raw + '% churn rate' } }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false } },
+          y: {
+            beginAtZero: true,
+            max: 50,
+            ticks: { callback: value => value + '%' },
+            grid: { color: '#edf2f7' },
+            border: { display: false }
+          }
+        }
+      }
+    });
+
+    // Doughnut chart: data values are retained and churned customer counts.
+    new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Retained', 'Churned'],
+        datasets: [{
+          data: [5174, 1869],
+          backgroundColor: ['#1769e0', '#e85656'],
+          hoverOffset: 4,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: context =>
+                context.label + ': ' + context.raw.toLocaleString() + ' customers'
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
