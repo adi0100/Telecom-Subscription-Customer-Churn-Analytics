@@ -7,6 +7,7 @@ from django.contrib.auth.models import Group
 from django.urls import reverse
 from .views import AGENT_GROUP_NAME
 from .models import AgentActivity, BillingAccounts, ChurnPrediction, ChurnRecords, Customers, Services, SystemUsers
+from ml_engine.predict import fetch_active_customers
 
 
 User = get_user_model()
@@ -240,6 +241,24 @@ class DashboardDataTests(TransactionTestCase):
         self.assertNotContains(response, 'A-003')
         self.assertNotContains(response, 'Churn status')
         self.assertContains(response, 'Run predictions')
+
+    def test_prediction_input_includes_only_complete_active_unpredicted_customers(self):
+        eligible = Customers.objects.get(customer_id='A-001')
+        incomplete = Customers.objects.get(customer_id='A-002')
+        predicted = Customers.objects.get(customer_id='A-003')
+        archived = Customers.objects.get(customer_id='A-004')
+        archived.is_archived = True
+        archived.save(update_fields=['is_archived'])
+
+        ChurnPrediction.objects.filter(customer__in=(eligible, incomplete)).delete()
+        ChurnPrediction.objects.filter(customer=archived).delete()
+        Services.objects.create(customer=eligible)
+        Services.objects.create(customer=predicted)
+        Services.objects.create(customer=archived)
+
+        customers = fetch_active_customers()
+
+        self.assertEqual(customers['customer_id'].tolist(), [eligible.customer_id])
 
     @patch('ml_engine.predict.run_predictions', return_value=4)
     def test_agent_can_run_predictions_and_activity_is_recorded(self, run_predictions):

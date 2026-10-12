@@ -25,7 +25,10 @@ def fetch_active_customers():
         'services', 
         'billingaccounts', 
         'churnrecords'
-    ).filter(is_archived=False)
+    ).filter(
+        is_archived=False,
+        prediction__isnull=True,
+    )
 
     records = []
     for c in queryset:
@@ -62,19 +65,19 @@ def fetch_active_customers():
     return pd.DataFrame(records)
 
 def run_predictions():
-    # 1. Load trained model pipeline
+    # 1. Fetch customers that still need predictions
+    df = fetch_active_customers()
+    if df.empty:
+        print("No eligible unpredicted customer records found.")
+        return 0
+
+    # 2. Load trained model pipeline only when inference is needed
     model_path = os.path.join(os.path.dirname(__file__), 'churn_rf_pipeline.joblib')
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found at {model_path}. Run train.py first!")
 
     print("Loading saved Random Forest pipeline...")
     pipeline = joblib.load(model_path)
-
-    # 2. Fetch customer data
-    df = fetch_active_customers()
-    if df.empty:
-        print("No active customer records found.")
-        return 0
 
     # 3. Extract features (drop ID column)
     X = df.drop(columns=['customer_id'])
