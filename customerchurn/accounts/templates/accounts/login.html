@@ -1,44 +1,367 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telco Churn Analytics - Login</title>
-    <!-- Bootstrap 5 CDN for clean styling -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#102a43">
+    <title>Sign in | HoldOn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light;
+            --navy: #102a43;
+            --blue: #2377ec;
+            --muted: #718096;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: #243b53;
+            background: #f4f7fb;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        .login-shell {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(400px, .95fr);
+        }
+
+        .brand-panel {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            min-height: 100vh;
+            padding: clamp(2rem, 5vw, 4.5rem);
+            color: #fff;
+            background:
+                radial-gradient(ellipse at 10% 95%, rgba(35, 119, 236, .38), transparent 42%),
+                linear-gradient(145deg, #0e253d 0%, #12385e 58%, #1769b4 100%);
+        }
+
+        .brand-panel::before,
+        .brand-panel::after {
+            position: absolute;
+            content: "";
+            border: 1px solid rgba(255, 255, 255, .09);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .brand-panel::before {
+            width: 520px;
+            height: 520px;
+            right: -245px;
+            bottom: -185px;
+        }
+
+        .brand-panel::after {
+            width: 390px;
+            height: 390px;
+            right: -180px;
+            bottom: -120px;
+        }
+
+        .brand,
+        .hero-copy,
+        .panel-footer {
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: .75rem;
+            color: #fff;
+            text-decoration: none;
+            width: fit-content;
+        }
+
+        .brand-mark {
+            display: grid;
+            width: 44px;
+            height: 44px;
+            place-items: center;
+            border: 1px solid rgba(255, 255, 255, .22);
+            border-radius: 13px;
+            color: #fff;
+            background: linear-gradient(145deg, #3a91ff, #1769e0);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, .18);
+            font-size: 1.35rem;
+        }
+
+        .brand-name {
+            font-size: 1.4rem;
+            font-weight: 750;
+            letter-spacing: -.04em;
+        }
+
+        .hero-copy { max-width: 590px; margin: 4rem 0; }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+            margin-bottom: 1.4rem;
+            color: #b8d8ff;
+            font-size: .75rem;
+            font-weight: 750;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+
+        .eyebrow::before {
+            width: 20px;
+            height: 2px;
+            content: "";
+            background: #62a9ff;
+        }
+
+        .hero-copy h1 {
+            max-width: 540px;
+            margin: 0;
+            font-size: clamp(2.6rem, 5vw, 4.4rem);
+            font-weight: 750;
+            letter-spacing: -.055em;
+            line-height: 1.08;
+        }
+
+        .hero-copy h1 span { color: #76b5ff; }
+
+        .hero-copy p {
+            max-width: 460px;
+            margin: 1.4rem 0 0;
+            color: #c5d5e6;
+            font-size: 1.05rem;
+            line-height: 1.75;
+        }
+
+        .insight-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            max-width: 430px;
+            margin-top: 2.5rem;
+            padding: 1rem 1.1rem;
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .08);
+            backdrop-filter: blur(10px);
+        }
+
+        .insight-icon {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            flex: 0 0 auto;
+            place-items: center;
+            border-radius: 12px;
+            color: #b8d8ff;
+            background: rgba(118, 181, 255, .15);
+            font-size: 1.2rem;
+        }
+
+        .insight-card strong { display: block; font-size: .9rem; }
+        .insight-card small { color: #c5d5e6; }
+        .panel-footer { color: #a9bed4; font-size: .8rem; }
+
+        .form-panel {
+            display: grid;
+            min-height: 100vh;
+            place-items: center;
+            padding: 2rem;
+        }
+
+        .login-card { width: min(100%, 430px); }
+
+        .mobile-brand {
+            display: none;
+            align-items: center;
+            gap: .65rem;
+            margin-bottom: 2.5rem;
+            color: var(--navy);
+            font-size: 1.25rem;
+            font-weight: 750;
+        }
+
+        .mobile-brand .brand-mark {
+            width: 38px;
+            height: 38px;
+            border: 0;
+            border-radius: 11px;
+            font-size: 1.15rem;
+        }
+
+        .welcome-label {
+            margin-bottom: .55rem;
+            color: var(--blue);
+            font-size: .75rem;
+            font-weight: 750;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        .login-card h2 {
+            margin: 0;
+            color: var(--navy);
+            font-size: 2rem;
+            font-weight: 750;
+            letter-spacing: -.045em;
+        }
+
+        .login-intro {
+            margin: .65rem 0 2rem;
+            color: var(--muted);
+            font-size: .95rem;
+        }
+
+        .form-label {
+            margin-bottom: .5rem;
+            color: #334e68;
+            font-size: .86rem;
+            font-weight: 650;
+        }
+
+        .form-control {
+            min-height: 50px;
+            padding: .75rem .9rem;
+            border: 1px solid #d9e2ec;
+            border-radius: 9px;
+            color: var(--navy);
+            background-color: #fff;
+            font-size: .95rem;
+            transition: border-color .18s ease, box-shadow .18s ease;
+        }
+
+        .form-control::placeholder { color: #9fb0c1; }
+
+        .form-control:focus {
+            border-color: #5a9df3;
+            box-shadow: 0 0 0 .22rem rgba(35, 119, 236, .13);
+        }
+
+        .btn-sign-in {
+            min-height: 50px;
+            border: 0;
+            border-radius: 9px;
+            color: #fff;
+            background: linear-gradient(100deg, #1769e0, #3187f4);
+            box-shadow: 0 7px 16px rgba(35, 119, 236, .2);
+            font-weight: 700;
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .btn-sign-in:hover {
+            color: #fff;
+            background: linear-gradient(100deg, #125bc7, #2377ec);
+            box-shadow: 0 9px 20px rgba(35, 119, 236, .28);
+            transform: translateY(-1px);
+        }
+
+        .secure-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .45rem;
+            margin-top: 1.5rem;
+            color: #8293a5;
+            font-size: .78rem;
+        }
+
+        .secure-note i { color: #23a777; }
+
+        @media (max-width: 850px) {
+            .login-shell { grid-template-columns: minmax(0, .9fr) minmax(380px, 1.1fr); }
+            .brand-panel { padding: 2.5rem; }
+            .hero-copy h1 { font-size: clamp(2.4rem, 5vw, 3.5rem); }
+        }
+
+        @media (max-width: 680px) {
+            .login-shell { display: block; }
+            .brand-panel { display: none; }
+            .form-panel {
+                min-height: 100vh;
+                padding: 2rem 1.35rem;
+                background:
+                    radial-gradient(ellipse at 100% 0%, rgba(35, 119, 236, .08), transparent 42%),
+                    #f4f7fb;
+            }
+            .login-card { max-width: 430px; }
+            .mobile-brand { display: flex; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                transition-duration: .01ms !important;
+            }
+        }
+    </style>
 </head>
-<body class="bg-light d-flex align-items-center vh-100">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-4">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body p-4">
-                        <h4 class="text-center mb-4 fw-bold">Telco Churn Portal</h4>
-                        <form method="POST">
-                            {% csrf_token %}
-                            
-                            {% if form.errors %}
-                                <div class="alert alert-danger p-2 text-center small">
-                                    Invalid username or password
-                                </div>
-                            {% endif %}
+<body>
+    <main class="login-shell">
+        <section class="brand-panel" aria-label="HoldOn customer retention analytics">
+            <a class="brand" href="#" aria-label="HoldOn home">
+                <span class="brand-mark"><i class="bi bi-activity" aria-hidden="true"></i></span>
+                <span class="brand-name">HoldOn</span>
+            </a>
 
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Username</label>
-                                <input type="text" name="username" class="form-control" required autofocus>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Password</label>
-                                <input type="password" name="password" class="form-control" required>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100 py-2 mt-2">Sign In</button>
-                        </form>
-                    </div>
+            <div class="hero-copy">
+                <div class="eyebrow">Customer retention intelligence</div>
+                <h1>See risk earlier.<br><span>Keep customers</span> longer.</h1>
+                <p>Turn customer signals into smarter retention decisions with a clearer view of churn risk and engagement.</p>
+                <div class="insight-card">
+                    <span class="insight-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+                    <span><strong>Insights that move you forward</strong><small>Make every customer relationship count.</small></span>
                 </div>
             </div>
-        </div>
-    </div>
+
+            <div class="panel-footer">A clearer view of customer loyalty.</div>
+        </section>
+
+        <section class="form-panel">
+            <div class="login-card">
+                <div class="mobile-brand">
+                    <span class="brand-mark"><i class="bi bi-activity" aria-hidden="true"></i></span>
+                    <span>HoldOn</span>
+                </div>
+                <div class="welcome-label">Welcome back</div>
+                <h2>Sign in to your account</h2>
+                <p class="login-intro">Enter your details to continue to your workspace.</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                        <div class="alert alert-danger d-flex align-items-center gap-2 py-3" role="alert">
+                            <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+                            <span>Invalid username or password</span>
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label" for="username">Username</label>
+                        <input id="username" type="text" name="username" class="form-control" placeholder="Enter your username" autocomplete="username" required autofocus>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label" for="password">Password</label>
+                        <input id="password" type="password" name="password" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-sign-in w-100">Sign in <i class="bi bi-arrow-right ms-2" aria-hidden="true"></i></button>
+                </form>
+
+                <div class="secure-note"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Your workspace is secure and protected</div>
+            </div>
+        </section>
+    </main>
 </body>
 </html>
