@@ -15,7 +15,7 @@ class SystemUsers(models.Model):
     role = models.CharField(max_length=20)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'system_users'
 
     def __str__(self):
@@ -38,7 +38,7 @@ class Customers(models.Model):
     created_by_user = models.ForeignKey(SystemUsers, models.SET_NULL, db_column='created_by_user_id', blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'customers'
 
     def __str__(self):
@@ -59,7 +59,7 @@ class Services(models.Model):
     streaming_movies = models.CharField(max_length=25, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'services'
 
 
@@ -74,7 +74,7 @@ class BillingAccounts(models.Model):
     total_charges = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'billing_accounts'
 
 
@@ -84,7 +84,7 @@ class ChurnRecords(models.Model):
     churn_status = models.CharField(max_length=3)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'churn_records'
 
 
@@ -96,13 +96,13 @@ class ChurnPrediction(models.Model):
         db_column='customer_id',
         related_name='prediction'
     )
-    churn_probability = models.FloatField()  # e.g., 0.782
-    risk_level = models.CharField(max_length=10)  # 'Low', 'Medium', 'High'
-    top_factors = models.JSONField(null=True, blank=True)  # List of primary risk drivers
+    churn_probability = models.FloatField()
+    risk_level = models.CharField(max_length=10)
+    top_factors = models.JSONField(null=True, blank=True)
     predicted_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        managed = True  # Managed by Django migrations
+        managed = True
         db_table = 'churn_predictions'
 
     def __str__(self):

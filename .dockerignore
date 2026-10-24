@@ -1,0 +1,14 @@
+.venv/
+myenv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+
+# Extra documents and archives
+*.pdf
+*.docx
+*.zip
+Cleaned data/
+Literature review/
+psql documents/
