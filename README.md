@@ -33,3 +33,5 @@
 * **`BillingAccounts`**: Contract types, payment methods, monthly charges, and tenure tracking.
 * **`ChurnRecords` & `ChurnPrediction`**: Churn flags, probability scoring, and risk driver breakdowns.
 * **`AgentActivity`**: Operational activity logging for retention agents.
+
+## RENDER URL :  https://telecom-churn-analytics.onrender.com
